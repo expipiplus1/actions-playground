@@ -105,7 +105,7 @@ while read -r hash; do
     break
   fi
   prev=$hash
-done < <(git log --first-parent --pretty=format:"%h" "$startRev"~ -- "$packageYaml")
+done < <(git log --first-parent --pretty=tformat:"%h" "$startRev"~ -- "$packageYaml")
 
 # The first commit changing the version
 firstChange=$prev
