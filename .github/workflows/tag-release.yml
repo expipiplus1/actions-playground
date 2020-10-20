@@ -11,7 +11,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - run: |
-        pip3 install yq
+        sudo pip3 install yq
     - run: |
         ./tag-latest-release.sh --package package.yaml --tag-prefix v
         ./tag-latest-release.sh --package other-package.yaml --tag-prefix other-v
