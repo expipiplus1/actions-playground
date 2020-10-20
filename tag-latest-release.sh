@@ -24,7 +24,7 @@ while [[ "$#" -gt 0 ]]; do
     shift
     ;;
   *)
-    echo "Unknown parameter passed: $1"
+    echo "Unknown parameter passed: $1" >&2
     exit 1
     ;;
   esac
@@ -69,11 +69,11 @@ getVersion() {
   yaml=$2
 
   if ! ver=$(git show "$rev:$yaml" | yq --exit-status --raw-output .version); then
-    echo "Unable to get version from $yaml (at $rev)"
+    echo "Unable to get version from $yaml (at $rev)" >&2
     exit 1
   fi
   if ! [[ "$ver" =~ ^[0-9.]+$ ]]; then
-    echo "version from $yaml (at $rev) isn't a valid version: $ver"
+    echo "version from $yaml (at $rev) isn't a valid version: $ver" >&2
     exit 1
   fi
   printf "%s" "$ver"
@@ -87,7 +87,7 @@ tag=$tagPrefix$currentVersion
 
 # Exit if this version already has a tag
 if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
-  echo "Tag $tag already exists"
+  echo "Tag $tag already exists" >&2
   exit
 fi
 
