@@ -78,8 +78,8 @@ if [ ${#tagMap[@]} -eq 0 ]; then
 fi
 
 # If we're not the job running on the most important release, exit
-# shellcheck disable=SC2128
-if [ "$requireFirst" ] && [ "$requireFirst" != "$tagMap" ]; then
+for first in "${tagMap[@]}"; do break; done
+if [ "$requireFirst" ] && [ "$requireFirst" != "$first" ]; then
   echo >&2 "Skipping because --require-first didn't match"
   exit
 fi
