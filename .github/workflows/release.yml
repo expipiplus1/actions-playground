@@ -16,9 +16,10 @@ jobs:
 
     - name: Build project
       run: |
+        ref="${{ github.ref }}"
         ./release.sh \
           --release-note release-note.md \
-          --require-first ${"${{ github.ref }}"#"refs/tags/"} \
+          --require-first ${ref#"refs/tags/"} \
           --assets assets
 
     - name: Create Release
