@@ -1,4 +1,4 @@
-name: Tag Haskell Release
+name: Tag Latest Release
 
 on:
   push:
@@ -19,5 +19,3 @@ jobs:
         ./tag-latest-release.sh --package other-package.yaml --tag-prefix other-v
         ./tag-latest-release.sh --package third-package.yaml --tag-prefix third-v
         git push --tags
-
-
