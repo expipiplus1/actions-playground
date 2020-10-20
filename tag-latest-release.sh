@@ -1,22 +1,89 @@
 #!/usr/bin/env bash
 
+set -e
+
+help=
+startRev=HEAD
+tagPrefix=v
+packageYaml=package.yaml
+
+# from https://stackoverflow.com/questions/192249/how-do-i-parse-command-line-arguments-in-bash
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+  -h | --help) help=1 ;;
+  --start-rev)
+    startRev="$2"
+    shift
+    ;;
+  --tag-prefix)
+    tagPrefix="$2"
+    shift
+    ;;
+  --package)
+    packageYaml="$2"
+    shift
+    ;;
+  *)
+    echo "Unknown parameter passed: $1"
+    exit 1
+    ;;
+  esac
+  shift
+done
+
+if [ $help ]; then
+  me=$(basename "$0")
+  cat <<EOF
+$me: Find the commit where the current version number in package.yaml was
+set, and add an appropriate tag to that version.
+
+Options:
+  --tag-prefix: Prefix for git tag, (default "v")
+  --start-rev: Revision at which to start searching for chages to version, (default "HEAD")
+  --package: Path to package.yaml, (default "package.yaml")
+  --help: duh
+EOF
+  exit 0
+fi
+
 ################################################################
-# Find the commit where the current version number in package.yaml was set, and
-# add an appropriate tag to that version.
+# Assertions
 ################################################################
+
+if ! [ -f "$packageYaml" ]; then
+  echo "$packageYaml doesn't seem to be a file" >&2
+  exit 1
+fi
+
+if ! git rev-parse -q >/dev/null; then
+  echo "This doesn't seem to be a git repository" >&2
+  exit 1
+fi
+
+################################################################
+# The program
+################################################################
+
+getVersion() {
+  rev=$1
+  yaml=$2
+
+  if ! ver=$(git show "$rev:$yaml" | yq --exit-status --raw-output .version); then
+    echo "Unable to get version from $yaml (at $rev)"
+    exit 1
+  fi
+  if ! [[ "$ver" =~ ^[0-9.]+$ ]]; then
+    echo "version from $yaml (at $rev) isn't a valid version: $ver"
+    exit 1
+  fi
+  printf "%s" "$ver"
+}
 
 # This is the version we want to find the first appearance of on the main
 # branch (the one followed by --first-parent)
-if ! currentVersion=$(yq <package.yaml --exit-status --raw-output .version); then
-  echo "Unable to get version from package.yaml"
-  exit 1
-fi
-if ! [[ "$currentVersion" =~ ^[0-9.]+$ ]]; then
-  echo "version from package.yaml isn't a valid version: $currentVersion"
-  exit 1
-fi
+currentVersion=$(getVersion "$startRev" "$packageYaml")
 
-tag=v$currentVersion
+tag=$tagPrefix$currentVersion
 
 # Exit if this version already has a tag
 if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
@@ -25,7 +92,7 @@ if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
 fi
 
 # The current candidate for the package.yaml changing commit
-prev=$(git rev-parse HEAD)
+prev=$(git rev-parse "$startRev")
 
 # - Get all the comments on the main branch which touch this file, most recent
 #   ones first, starting with the immediate parent
@@ -33,15 +100,16 @@ prev=$(git rev-parse HEAD)
 #   the candidate
 # - Otherwise continue into history, using the parent as the new candidate
 while read -r hash; do
-  oldVersion=$(git show "$hash":package.yaml | yq .version)
+  oldVersion=$(getVersion "$hash" "$packageYaml")
   if [ "$oldVersion" != "$currentVersion" ]; then
-    brea
+    break
   fi
   prev=$hash
-done < <(git log --first-parent --pretty=format:"%H" HEAD~ -- package.yaml)
+done < <(git log --first-parent --pretty=format:"%h" "$startRev"~ -- "$packageYaml")
 
 # The first commit changing the version
 firstChange=$prev
 
 # Set the tag
+echo "Tagging $firstChange as $tag" >&2
 git tag "$tag" "$firstChange"
