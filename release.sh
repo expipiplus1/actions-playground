@@ -87,7 +87,7 @@ fi
 releaseTitle="Release $(printf "%s" "${tagMap[*]}" | sed 's/ /, /g')"
 echo "$releaseTitle" >&2
 
-printf "# %s\n\n" "$releaseTitle" >"$releaseNote"
+printf "%s\n\n" "$releaseTitle" >"$releaseNote"
 
 release1() {
   mkdir -p "$assets"
