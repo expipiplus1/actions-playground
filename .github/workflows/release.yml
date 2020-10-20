@@ -18,7 +18,7 @@ jobs:
       run: |
         ./release.sh \
           --release-note release-note.md \
-          --require-first ${${{ github.ref }}#"refs/tags/"} \
+          --require-first ${"${{ github.ref }}"#"refs/tags/"} \
           --assets assets
 
     - name: Create Release
