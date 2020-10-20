@@ -11,7 +11,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - run: |
-        snap install yq
+        sudo snap install yq
     - run: |
         ./tag-latest-release.yml --package package.yaml --tag-prefix v
         ./tag-latest-release.yml --package other-package.yaml --tag-prefix other-v
