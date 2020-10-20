@@ -20,8 +20,8 @@ jobs:
         git fetch --tags
         ref="${{ github.ref }}"
         ./release.sh \
-          --release-note release-note.md \
           --require-first ${ref#"refs/tags/"} \
+          --release-note release-note.md \
           --assets assets
 
     - name: Create Release
