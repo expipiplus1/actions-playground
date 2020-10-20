@@ -13,9 +13,9 @@ jobs:
     - run: |
         sudo snap install yq
     - run: |
-        ./tag-latest-release.yml --package package.yaml --tag-prefix v
-        ./tag-latest-release.yml --package other-package.yaml --tag-prefix other-v
-        ./tag-latest-release.yml --package third-package.yaml --tag-prefix third-v
+        ./tag-latest-release.sh --package package.yaml --tag-prefix v
+        ./tag-latest-release.sh --package other-package.yaml --tag-prefix other-v
+        ./tag-latest-release.sh --package third-package.yaml --tag-prefix third-v
         git push --tags
 
 
