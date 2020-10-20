@@ -60,6 +60,16 @@ if ! git rev-parse -q >/dev/null; then
   exit 1
 fi
 
+if ! git rev-parse -q "$startRev" 2>/dev/null >/dev/null; then
+  echo "Revision $startRev doesn't exist" >&2
+  exit 1
+fi
+
+if ! git rev-parse -q "$startRev"~ 2>/dev/null >/dev/null; then
+  echo "This seems to be a shallow repository ($startRev~ doesn't exist)" >&2
+  exit 1
+fi
+
 ################################################################
 # The program
 ################################################################
