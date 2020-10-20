@@ -16,7 +16,7 @@ jobs:
     - name: Build project # This would actually build your project, using zip for an example artifact
       run: |
         echo ${{ github.ref }}
-        tar czvf package.yaml package.tar.gz
+        tar czv package.yaml > package.tar.gz
 
     - name: Create Release
       id: create_release
