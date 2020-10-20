@@ -1,0 +1,21 @@
+name: Tag Haskell Release
+
+on:
+  push:
+    branches:
+    - master
+
+jobs:
+  update:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - run: |
+        snap install yq
+    - run: |
+        ./tag-latest-release.yml --package package.yaml --tag-prefix v
+        ./tag-latest-release.yml --package other-package.yaml --tag-prefix other-v
+        ./tag-latest-release.yml --package third-package.yaml --tag-prefix third-v
+        git push --tags
+
+
