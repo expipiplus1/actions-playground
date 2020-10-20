@@ -92,7 +92,7 @@ if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
 fi
 
 # The current candidate for the package.yaml changing commit
-prev=$(git rev-parse "$startRev")
+prev=$(git rev-parse --short "$startRev")
 
 # - Get all the comments on the main branch which touch this file, most recent
 #   ones first, starting with the immediate parent
