@@ -17,6 +17,7 @@ jobs:
     - name: Build project
       run: |
         git tag --points-at HEAD
+        git fetch --tags
         ref="${{ github.ref }}"
         ./release.sh \
           --release-note release-note.md \
