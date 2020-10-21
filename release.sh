@@ -40,20 +40,23 @@ $me: Create releases for the tags on HEAD. Fails when there are no relevant
 Options:
   --require-first: Exit without doing anything if this doesn't match the
       first package in the release. This is useful for CI scripts which are
-      spawned multiple times on the same commmit with different tags, passing
-      the spawning tag here will ensure that only the "highest priority" job
-      actually does anything.
+      spawned multiple times on the same commmit with several matching tags,
+      passing the spawning tag here will ensure that only the "highest
+      priority" job actually does anything because it will be the only job for
+      which, once the tags are sorted by priority, the highest priority tag
+      matches this argument.
   --release-note: The file into which to write a note for the release in
       markdown. Default "release-note.md".
   --assets: A directory into which release assets will be placed, will be
       created if it is absent. Default "assets".
+  --ignore-dirty: Proceed even with a dirty git tree.
   --help: show this message
 EOF
-  exit 0
+  exit
 fi
 
 ################################################################
-# Releases every package with an appropriate tag
+# Releases every package which has a release tagged on this commit
 ################################################################
 
 tagNames=(^v ^other-v ^third-v)
@@ -75,6 +78,11 @@ done
 if [ ${#tagMap[@]} -eq 0 ]; then
   echo >&2 "No relevant tags to release"
   exit
+fi
+
+if [[ -n $(git status --short --untracked-files=no) ]]; then
+  echo "There are untracked changes in the working tree, please resolve these before making a release or pass '--ignore-dirty'"
+  exit 1
 fi
 
 # If we're not the job running on the most important release, exit
