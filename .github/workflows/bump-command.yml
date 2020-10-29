@@ -23,8 +23,7 @@ jobs:
 
       - run: |
           sudo pip3 install yq
-          sudo apt-get install hpack
-          sudo apt-get install libffi6
+          cabal install hpack
         shell: bash
 
       - name: Init Git
