@@ -21,6 +21,11 @@ jobs:
           ref: ${{ github.event.client_payload.pull_request.head.ref }}
           submodules: recursive
 
+      - run: |
+          sudo pip3 install yq
+          sudo apt-get install hpack
+        shell: bash
+
       - name: Init Git
         run: |
           git config --global user.name 'actions-bot'
