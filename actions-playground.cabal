@@ -1,0 +1,9 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.2.
+--
+-- see: https://github.com/sol/hpack
+
+name:           actions-playground
+version:        0.26
+build-type:     Simple
