@@ -22,6 +22,8 @@ jobs:
           submodules: recursive
 
       - uses: cachix/install-nix-action@v11
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
       - run: |
           sudo pip3 install yq
           nix-env -f '<nixpkgs>' -iA haskellPackages.hpack
