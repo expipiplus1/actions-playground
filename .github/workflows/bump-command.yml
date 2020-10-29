@@ -21,9 +21,10 @@ jobs:
           ref: ${{ github.event.client_payload.pull_request.head.ref }}
           submodules: recursive
 
+      - uses: cachix/install-nix-action@v11
       - run: |
           sudo pip3 install yq
-          cabal install hpack
+          nix-env -f '<nixpkgs>' -iA haskellPackages.hpack
         shell: bash
 
       - name: Init Git
