@@ -44,12 +44,13 @@ jobs:
             tagPrefix: third-v
           EOF
 
-          jq <<<$NAMED_ARGS --argfile info package-infos.json '
+          jq <<<$NAMED_ARGS --raw-output --argfile info package-infos.json '
             . as $i |
             keys |
             .[] |
             "--version \($i[.] | @sh) --package-directory \($info[.].directory | @sh) --tag-prefix \($info[.].tagPrefix | @sh)"
             ' | while read a; do
+            printf "Calling with: %s\n" "$a"
             ./bump-version.sh --commit-message-file /tmp/message $a
           done
           if [ -f /tmp/message ]; then
