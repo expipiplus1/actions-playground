@@ -4,6 +4,6 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 
-name:           actions-playground
-version:        0.30
+name:           actions-playground-3
+version:        1.0
 build-type:     Simple
