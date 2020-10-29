@@ -18,5 +18,5 @@ jobs:
         token: ${{ secrets.PAT }}
         tagsAndFiles: |
           v package.yaml
-          other-v other-package.yaml
-          third-v third-package.yaml
+          other-v second/other-package.yaml
+          third-v third/third-package.yaml

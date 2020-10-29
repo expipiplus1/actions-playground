@@ -2,28 +2,35 @@
 
 set -e
 
+echo $#
+
 help=
 tagPrefix=v
 ignoreDirty=
 createTag=
 version=
 packageDir=.
+commitMessageFile=
 
 # from https://stackoverflow.com/questions/192249/how-do-i-parse-command-line-arguments-in-bash
 while [[ "$#" -gt 0 ]]; do
   case $1 in
   -h | --help) help=1 ;;
-  --version)
+  -v | --version)
     version="$2"
     shift
     ;;
-  --package-directory)
+  -d | --package-directory)
     packageDir="$2"
     shift
     ;;
   --create-tags) createTag=1 ;;
-  --tag-prefix)
+  -t | --tag-prefix)
     tagPrefix="$2"
+    shift
+    ;;
+  --commit-message-file)
+    commitMessageFile="$2"
     shift
     ;;
   --ignore-dirty) ignoreDirty=1 ;;
@@ -38,13 +45,14 @@ done
 if [ $help ]; then
   cat <<EOF
     Options:
-      --version 1.2.3       : version to bump to
-      --package-directory d : directory containing changelog.md and package.yaml, default .
-      --ignore-dirty        : don't exit when the git tree is dirty
-      --create-tag          : create tags, default off
-      --tag-prefix my-tag-v : prefix for git tag, default: v
-      --ignore-old-version  : don't check the old version to ensure an upgrade is happening
-      --help                : duh
+      -v|--version 1.2.3       : version to bump to
+      -p|--package-directory d : directory containing changelog.md and package.yaml, default .
+      --ignore-dirty           : don't exit when the git tree is dirty
+      --create-tag             : create tags, default off
+      -t|--tag-prefix my-tag-v : prefix for git tag, default: v
+      --ignore-old-version     : don't check the old version to ensure an upgrade is happening
+      --commit-message-file    : file to write the commit message in instead of committing directly
+      --help                   : duh
 EOF
   exit 0
 fi
@@ -104,12 +112,19 @@ git add "$packageDir/$name.cabal"
 tag=$tagPrefix$version
 branch="release-$tag"
 git checkout -b "$branch"
-git commit --file <(
+
+commitMessage(){
   printf "%s\n\n" "$tag"
   if [ -f "$changelog" ]; then
     awk '/## WIP/{flag=0;next};/##/{flag=flag+1};flag==1' <"$changelog" | sed "/^##/d"
   fi
-)
+}
+
+if [ -z "$commitMessageFile" ]; then
+  git commit --file <(commitMessage)
+else
+  commitMessage > "$commitMessageFile"
+fi
 
 if [ "$createTag" ]; then
   git tag "$tag"
