@@ -51,7 +51,7 @@ jobs:
             "--version \($i[.] | @sh) --package-directory \($info[.].directory | @sh) --tag-prefix \($info[.].tagPrefix | @sh)"
             ' | while read a; do
             printf "Calling with: %s\n" "$a"
-            ./bump-version.sh --commit-message-file /tmp/message $a
+            eval ./bump-version.sh --commit-message-file /tmp/message "$a"
           done
           if [ -f /tmp/message ]; then
             git commit --file /tmp/message
