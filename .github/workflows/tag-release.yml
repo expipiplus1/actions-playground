@@ -13,10 +13,10 @@ jobs:
       with:
         fetch-depth: 0 # Fetch everything
         token: ${{ secrets.PAT }}
-    - run: |
-        sudo pip3 install yq
-    - run: |
-        ./tag-latest-release.sh --package package.yaml --tag-prefix v
-        ./tag-latest-release.sh --package other-package.yaml --tag-prefix other-v
-        ./tag-latest-release.sh --package third-package.yaml --tag-prefix third-v
-        git push --tags
+    - uses: expipiplus1/tag-latest-release
+      with:
+        token: ${{ secrets.PAT }}
+        tagsAndFiles: |
+          v package.yaml
+          other-v other-package.yaml
+          third-v third-package.yaml
