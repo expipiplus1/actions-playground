@@ -13,7 +13,7 @@ jobs:
       with:
         fetch-depth: 0 # Fetch everything
         token: ${{ secrets.PAT }}
-    - uses: expipiplus1/tag-latest-release
+    - uses: expipiplus1/tag-latest-release@HEAD
       with:
         token: ${{ secrets.PAT }}
         tagsAndFiles: |
