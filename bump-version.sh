@@ -1,142 +1,119 @@
 #!/usr/bin/env bash
 
-echo "$@"
-exit
-
 set -e
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-
 help=
-regenerate=
-vulkan_version=
-vma_version=
-utils_version=
-haddocks=
-tarballs=
+tagPrefix=v
 ignoreDirty=
+createTag=
+version=
+packageDir=.
 
 # from https://stackoverflow.com/questions/192249/how-do-i-parse-command-line-arguments-in-bash
 while [[ "$#" -gt 0 ]]; do
-    case $1 in
-        -h|--help) help=1 ;;
-        -r|--regenerate) regenerate=1 ;;
-        --generate-tarballs) tarballs=1 ;;
-        --vulkan) vulkan_version="$2"; shift ;;
-        --vma) vma_version="$2"; shift ;;
-        --utils) utils_version="$2"; shift ;;
-        --standalone-haddocks) haddocks="$2"; shift ;;
-        --ignore-dirty) ignoreDirty=1 ;;
-        *) echo "Unknown parameter passed: $1"; exit 1 ;;
-    esac
+  case $1 in
+  -h | --help) help=1 ;;
+  --version)
+    version="$2"
     shift
+    ;;
+  --package-directory)
+    packageDir="$2"
+    shift
+    ;;
+  --create-tags) createTag=1 ;;
+  --tag-prefix)
+    tagPrefix="$2"
+    shift
+    ;;
+  --ignore-dirty) ignoreDirty=1 ;;
+  *)
+    echo "Unknown parameter passed: $1"
+    exit 1
+    ;;
+  esac
+  shift
 done
 
 if [ $help ]; then
   cat <<EOF
     Options:
-      --regenerate: regenerate source
-      --vulkan 3.4.5: new vulkan version
-      --vma 3.4.1: new VulkanMemoryAllocator version
-      --utils 0.1.3: new vulkan-utils version
-      --standalone-haddocks path/to/standalone-haddocks
+      --version 1.2.3       : version to bump to
+      --package-directory d : directory containing changelog.md and package.yaml, default .
+      --ignore-dirty        : don't exit when the git tree is dirty
+      --create-tag          : create tags, default off
+      --tag-prefix my-tag-v : prefix for git tag, default: v
+      --ignore-old-version  : don't check the old version to ensure an upgrade is happening
+      --help                : duh
 EOF
   exit 0
 fi
 
-if [ "$vulkan_version" ]; then
-  tag=v$vulkan_version
-elif [ "$vma_version" ]; then
-  tag=vma-v$vma_version
-elif [ "$utils_version" ]; then
-  tag=utils-v$utils_version
-else
-  echo "running without new version of any package"
+if [ -z "$version" ]; then
+  echo >&2 "--version required"
   exit 1
-fi
-
-if [ $regenerate ]; then
-  echo "Regenerating source"
-  "$DIR/regenerate.sh"
 fi
 
 if ! [ $ignoreDirty ] && [[ -n $(git status --short --untracked-files=no) ]]; then
-  echo "There are untracked changes in the working tree, please resolve these before making a release"
+  echo >&2 "There are untracked changes in the working tree, please resolve these before making a release"
   exit 1
 fi
 
-if [ "$vulkan_version" ]; then
-  echo "Bumping vulkan version"
+checkExe() {
+  if ! command -v "$1" &>/dev/null; then
+    echo "$1 could not be found"
+    exit 1
+  fi
+}
 
-  sed -i.bak "s/^version: .*/version: $vulkan_version/g" package.yaml
-  sed -i.bak "s/^## WIP$/\0\n\n## [$vulkan_version] - $(date --iso-8601)/" changelog.md
-  hpack
-  git add package.yaml vulkan.cabal changelog.md
+checkExe git
+checkExe yq
+checkExe hpack
+
+package=$packageDir/package.yaml
+changelog=$packageDir/changelog.md
+
+name=$(yq <"$package" --raw-output .name)
+oldVersion=$(yq <"$package" --raw-output .version)
+
+if [ "$version" = "$oldVersion" ]; then
+  echo >&2 "The package is currently at the requested version ($oldVersion)"
+  exit 1
 fi
 
-if [ "$vma_version" ]; then
-  echo "Bumping VulkanMemoryAllocator version"
-
-  vulkan_breaking=$(yq <package.yaml .version --raw-output |
-    sed -E 's/([0-9]+\.[0-9]+).*/\1/')
-
-  sed -i.bak "s/^version: .*/version: $vma_version/g" VulkanMemoryAllocator/package.yaml
-  sed -i.bak "s/- vulkan [0-9 .<>=*]*/- vulkan == $vulkan_breaking.*/" VulkanMemoryAllocator/package.yaml
-  sed -i.bak "s/^## WIP$/\0\n\n## [$vma_version] - $(date --iso-8601)/" VulkanMemoryAllocator/changelog.md
-  hpack VulkanMemoryAllocator
-  git add VulkanMemoryAllocator/package.yaml VulkanMemoryAllocator/VulkanMemoryAllocator.cabal VulkanMemoryAllocator/changelog.md
+if ! sort --version-sort --check=silent <(printf "%s\n%s" "$oldVersion" "$version"); then
+  echo >&2 "The package is currently at a later version ($oldVersion)"
+  exit 1
 fi
 
-if [ "$utils_version" ]; then
-  echo "Bumping vulkan-utils version"
+echo >&2 "Bumping version of $name from $oldVersion to $version"
 
-  vulkan_breaking=$(yq <package.yaml .version --raw-output |
-    sed -E 's/([0-9]+\.[0-9]+).*/\1/')
+sed -i.bak "s/^version: .*/version: \"$version\"/g" "$package"
+git add "$package"
 
-  sed -i.bak "s/^version: .*/version: $utils_version/g" utils/package.yaml
-  sed -i.bak "s/- vulkan [0-9 .<>=*]*/- vulkan == $vulkan_breaking.*/" utils/package.yaml
-  sed -i.bak "s/^## WIP$/\0\n\n## [$utils_version] - $(date --iso-8601)/" utils/changelog.md
-  hpack utils
-  git add utils/package.yaml utils/vulkan-utils.cabal utils/changelog.md
+if [ -f "$changelog" ]; then
+  sed -i.bak "s/^## WIP$/\0\n\n## [$version] - $(date --iso-8601)/" "$changelog"
+  git add "$changelog"
+else
+  echo >&2 "$changelog not found, not updating"
 fi
 
+hpack "$packageDir"
+git add "$packageDir/$name.cabal"
+
+tag=$tagPrefix$version
 branch="release-$tag"
 git checkout -b "$branch"
-git commit -m "$tag"
+git commit --file <(
+  printf "%s\n\n" "$tag"
+  if [ -f "$changelog" ]; then
+    awk '/## WIP/{flag=0;next};/##/{flag=flag+1};flag==1' <"$changelog" | sed "/^##/d"
+  fi
+)
 
-if [ "$vulkan_version" ]; then
+if [ "$createTag" ]; then
   git tag "$tag"
 fi
-
-if [ $tarballs ]; then
-
-  if [ "$vulkan_version" ]; then
-    echo "Generating vulkan tarballs"
-    vulkan_tarball="$(nix-build nix/release.nix -A vulkan --no-out-link)/*.tar.gz"
-    vulkan_docs_tarball="$(nix-build nix/release.nix -A docs.vulkan --no-out-link)/*.tar.gz"
-  fi
-
-  if [ "$vma_version" ]; then
-    echo "generating VulkanMemoryAllocator tarballs"
-    vma_tarball="$(nix-build nix/release.nix -A VulkanMemoryAllocator --no-out-link)/*.tar.gz"
-    vma_docs_tarball="$(nix-build nix/release.nix -A docs.VulkanMemoryAllocator --no-out-link)/*.tar.gz"
-  fi
-
-  if [ "$utils_version" ]; then
-    echo "generating vulkan-utils tarballs"
-    utils_tarball="$(nix-build nix/release.nix -A vulkan-utils --no-out-link)/*.tar.gz"
-    utils_docs_tarball="$(nix-build nix/release.nix -A docs.vulkan-utils --no-out-link)/*.tar.gz"
-  fi
-
-fi
-
-if [ "$haddocks" ]; then
-  git -C "$haddocks" rm --quiet -r -- .
-  nix-shell --pure -p stack nix fd --run "NIX_PATH=$NIX_PATH \"$DIR/gen-standalone-haddocks.sh\" \"$haddocks\""
-  git -C "$haddocks" add .
-  git -C "$haddocks" commit -m "v$vulkan_version"
-fi
-
 
 cat <<EOF
   --------------------------------
@@ -151,52 +128,4 @@ cat <<EOF
   git checkout master
   git merge "$branch"
   git push
-
 EOF
-
-if [ $tarballs ]; then
-
-  if [ "$vulkan_version" ]; then
-    cat <<EOF
-    # Upload vulkan-$vulkan_version
-    cabal upload "$vulkan_tarball"
-    cabal upload --doc "$vulkan_docs_tarball"
-
-    # After checking everything's OK
-    cabal upload --publish "$vulkan_tarball"
-    cabal upload --publish --doc "$vulkan_docs_tarball"
-
-EOF
-  fi
-
-  if [ "$vma_version" ]; then
-    cat <<EOF
-    # Upload vma-$vma_version
-    cabal upload "$vma_tarball"
-    cabal upload --doc "$vma_docs_tarball"
-
-    # After checking everything's OK
-    cabal upload --publish "$vma_tarball"
-    cabal upload --publish --doc "$vma_docs_tarball"
-EOF
-  fi
-
-  if [ "$utils_version" ]; then
-    cat <<EOF
-    # Upload utils-$utils_version
-    cabal upload "$utils_tarball"
-    cabal upload --doc "$utils_docs_tarball"
-
-    # After checking everything's OK
-    cabal upload --publish "$utils_tarball"
-    cabal upload --publish --doc "$utils_docs_tarball"
-EOF
-  fi
-fi
-
-if [ "$haddocks" ]; then
-  cat <<EOF
-  # Upload standalone haddocks
-  git -C $haddocks push
-EOF
-fi
