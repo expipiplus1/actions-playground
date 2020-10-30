@@ -19,4 +19,4 @@ jobs:
         tagsAndFiles: |
           v package.yaml
           other-v second/package.yaml
-          third-v third/third-package.yaml
+          third-v third/package.yaml
