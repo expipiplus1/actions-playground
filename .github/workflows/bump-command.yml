@@ -21,54 +21,26 @@ jobs:
           ref: ${{ github.event.client_payload.pull_request.head.ref }}
           submodules: recursive
 
-      - name: Init Git
-        run: |
-          git config --global user.name 'actions-bot'
-          git config --global user.email '58130806+actions-bot@users.noreply.github.com'
-
-      - run: |
-          yq . - >package-infos.json <<EOF
-          first:
-            directory: .
-            tagPrefix: v
-          second:
-            directory: second
-            tagPrefix: other-v
-          third:
-            directory: third
-            tagPrefix: third-v
-          EOF
-
-          jq <<<$NAMED_ARGS --argfile info package-infos.json '
-            . as $i |
-            keys |
-            .[] |
-            "--version \($i[.] | @sh) --package-directory \($info[.].directory | @sh) --tag-prefix \($info[.].tagPrefix | @sh)"
-            ' | while read a; do
-            ./bump-command.yml --commit-message-file /tmp/message $a
-          done
-          if [ -f /tmp/message ]; then
-            git commit --file /tmp/message
-            git push origin HEAD:${{ github.event.client_payload.pull_request.head.ref }}
-          else
-            echo >&2 "No commit message was generated"
-            exit 1
-          fi
-        env:
-          NAMED_ARGS: ${{ toJson(github.event.client_payload.slash_command.args.named) }}
+      - uses: expipiplus1/action-automation/bump-version@HEAD
+        with:
+          token: ${{ secrets.PAT }}
+          packageInfos: |
+            first:
+              directory: .
+              tagPrefix: v
+            second:
+              directory: second
+              tagPrefix: other-v
+            third:
+              directory: third
+              tagPrefix: third-v
+          packageVersions: |
+            ${{ toJson(github.event.client_payload.slash_command.args.named) }}
 
       - name: Add reaction
         uses: peter-evans/create-or-update-comment@v1
         with:
           token: ${{ secrets.PAT }}
-          repository: ${{ github.event.client_payload.github.payload.repository.full_name }}
-          comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
-          reaction-type: rocket
-
-      - name: Add reaction 2
-        uses: peter-evans/create-or-update-comment@v1
-        with:
-          token: ${{ steps.generate-token.outputs.token }}
           repository: ${{ github.event.client_payload.github.payload.repository.full_name }}
           comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
           reaction-type: rocket
