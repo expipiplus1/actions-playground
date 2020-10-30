@@ -7,11 +7,7 @@ jobs:
   bump:
     runs-on: ubuntu-20.04
     steps:
-      - uses: tibdex/github-app-token@v1
-        id: generate-token
-        with:
-          app_id: ${{ secrets.APP_ID }}
-          private_key: ${{ secrets.APP_PRIVATE_KEY }}
+      - uses: cachix/install-nix-action@v8
 
       # Checkout the pull request branch
       - uses: actions/checkout@v2
@@ -23,17 +19,10 @@ jobs:
 
       - uses: expipiplus1/action-automation/bump-version@HEAD
         with:
-          token: ${{ secrets.PAT }}
           packageInfos: |
-            first:
-              directory: .
-              tagPrefix: v
-            second:
-              directory: second
-              tagPrefix: other-v
-            third:
-              directory: third
-              tagPrefix: third-v
+            first v .
+            second other-v second
+            third third-v third
           packageVersions: |
             ${{ toJson(github.event.client_payload.slash_command.args.named) }}
 
