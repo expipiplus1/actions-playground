@@ -124,7 +124,7 @@ main = do
       d <- captureString <| date "--iso-8601"
       sed
         "-i.bak"
-        ("s/^## WIP$/\0\n\n## [" <> showVersion version <> "] - " <> d <> "/")
+        ("s/^## WIP$/\\0\\n\\n## [" <> showVersion version <> "] - " <> d <> "/")
         changelog
       git "add" changelog
     False -> sayErrString $ changelog <> " not found, not updating"
