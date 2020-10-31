@@ -15,10 +15,10 @@ jobs:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0 # Fetch everything
-        token: ${{ secrets.PAT }}
+        token: ${{ secrets.DEPLOY_KEY }}
     - uses: expipiplus1/tag-latest-release/tag-latest-release@HEAD
       with:
-        token: ${{ secrets.PAT }}
+        token: ${{ secrets.DEPLOY_KEY }}
         tagsAndFiles: |
           v package.yaml
           other-v second/package.yaml
